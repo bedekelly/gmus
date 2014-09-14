@@ -2,7 +2,6 @@
 import os
 import gi
 import sys
-import glib
 import thread
 import random
 import readline
@@ -12,10 +11,10 @@ from time import sleep
 from getpass import getpass
 
 gi.require_version('Gst', '1.0')
-from gi.repository import GObject, Gst
+from gi.repository import GObject, Gst, GLib
 
 GObject.threads_init()
-glib.threads_init()
+GLib.threads_init()
 Gst.init(None)
 
 MESSAGE_TIMEOUT = 3  # seconds
@@ -129,6 +128,7 @@ class Player:
         self.pl_pos = 0
         if self.logged_in:
             print("Logged in successfully!")
+            print("Loading player now...")
         else:
             print("Login failed.")
             quit()
@@ -141,7 +141,7 @@ class Player:
             bus.connect("message", self.handle_song_end)
         except:
             print("Big thing")
-        glib.MainLoop().run()
+        GLib.MainLoop().run()
 
     def beginloop(self):
         self.play_song()
@@ -168,6 +168,8 @@ class Player:
                 self.search_library("add")
             elif user_key == "s":
                 self.search_library("play")
+            elif user_key == "S":
+                self.search_library("add_all")
             elif user_key == "c":
                 self.clear_playlist()
 
@@ -207,7 +209,7 @@ class Player:
         for song in self.api.get_all_songs():
             if any([search_text.lower() in song['title'].lower(),
                    search_text.lower() in song['artist'].lower(),
-                   # search_text.lower() in song['album'].lower()s
+                   search_text.lower() in song['album'].lower()
                    ]):
                 matching_songs.append(song)
                 
@@ -216,11 +218,15 @@ class Player:
             sys.stdout.flush()
             sleep(MESSAGE_TIMEOUT)
             return
-        self.playlist.append(TextMenu(matching_songs).show())
-        if action == "play":
-            self.song = self.playlist[-1]
-            self.pl_pos = len(self.playlist) - 1
-            self.play_song()
+        if action == "add_all":
+            self.playlist.extend(matching_songs)
+        else:
+            self.playlist.append(TextMenu(matching_songs).show())
+            if action == "play":
+                self.song = self.playlist[-1]
+                self.pl_pos = len(self.playlist) - 1
+                self.play_song()
+
         # self.song = matching_songs[1]
         # self.play_song()
 
@@ -300,6 +306,7 @@ def main():
         username = raw_input("Username: ")
         # # notify("A password is required to use Google Music.")
         password = getpass()
+        print("Logging you in now...")
         try:
             player = Player(username, password)
             player.beginloop()
