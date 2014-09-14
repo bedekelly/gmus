@@ -9,6 +9,9 @@ import gmusicapi
 import unicodedata
 from time import sleep
 from getpass import getpass
+from pprint import pprint
+from collections import namedtuple
+
 
 gi.require_version('Gst', '1.0')
 from gi.repository import GObject, Gst, GLib
@@ -17,12 +20,19 @@ GObject.threads_init()
 GLib.threads_init()
 Gst.init(None)
 
-MESSAGE_TIMEOUT = 3  # seconds
+MESSAGE_TIMEOUT = 1.5  # seconds
+
+
+keys = namedtuple("keys", ["UP_SONG", "DOWN_SONG"])
+keys.UP_SONG = "up"
+keys.DOWN_SONG = "down"
+
 
 def strip_accents(s):
     nrm = ''.join(c for c in unicodedata.normalize('NFD', s) 
         if unicodedata.category(c) != 'Mn')
     return nrm
+
 
 class GetchUnix:
     """Implements getch for unix systems. Thanks StackOverflow."""
@@ -36,6 +46,14 @@ class GetchUnix:
         try:
             tty.setraw(sys.stdin.fileno())
             ch = sys.stdin.read(1)
+            if (ch == chr(27)):
+                next_ch = sys.stdin.read(2)[1]
+                if next_ch in ["A", "D"]:
+                    return keys.UP_SONG
+                elif next_ch in ["B", "D"]:
+                    return keys.DOWN_SONG
+            elif ord(ch) == 13:
+                return "\n"
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return ch
@@ -110,8 +128,8 @@ class TextMenu:
         while True:
             try:
                 return self.list_items[int(raw_input("Choice: ")) - 1]
-            except ValueError:
-                continue
+            except (ValueError, KeyboardInterrupt, EOFError):
+                return
 
 
 class Player:
@@ -120,6 +138,7 @@ class Player:
         self.username = username
         self.password = password
         self.api = gmusicapi.Mobileclient()
+        self.search_mode = False
         self.logged_in = self.api_login()
         self.stream_player = StreamPlayer(self)
         self.stream_player.play()
@@ -146,10 +165,13 @@ class Player:
     def beginloop(self):
         self.play_song()
         thread.start_new_thread(self.player_thread, ())
-        
+        self.update_song_display()
         while True:
             os.system('setterm -cursor off')
-            self.display_song()
+            if not self.search_mode:
+                self.display_song()
+            else:
+                self.display_match()
             user_key = getch()
             if user_key == " ":
                 self.paused = not self.paused
@@ -166,13 +188,60 @@ class Player:
                 break
             elif user_key == "a":
                 self.search_library("add")
+            elif user_key == "A":
+                self.search_library("add", stay=True)
             elif user_key == "s":
                 self.search_library("play")
             elif user_key == "S":
                 self.search_library("add_all")
             elif user_key == "c":
                 self.clear_playlist()
+            elif user_key == "p":
+                self.add_playlist()
+            else:
+                if self.search_mode:
+                    if user_key == keys.UP_SONG:
+                        self.select_previous_song()
+                    elif user_key == keys.DOWN_SONG:
+                        self.select_next_song()
+                    elif user_key == "\n":
+                        self.search_mode_handle_select()
+                    elif user_key in ["q", "c"]:
+                        self.search_mode = False
+            self.update_song_display()
 
+    def add_playlist(self):
+        playlists = self.api.get_all_playlists()
+        user_playlist_contents = self.api.get_all_user_playlist_contents()
+        pprint(user_playlist_contents)
+
+    def enter_search_mode(self, matches, action):
+        self.search_mode = True
+        self.matches = matches
+        self.search_mode_action = action
+        self.match_pos = 0
+        self.display_match()  # First match, i.e. matches[0]
+
+    def select_next_song(self):
+        if self.match_pos < len(self.matches) - 1:
+            self.match_pos += 1
+            self.display_match()
+
+
+    def search_mode_handle_select(self):
+        self.playlist.append(self.current_match)
+        if self.search_mode_action == "play":
+            self.pl_pos = len(self.playlist) - 1
+            self.song = self.playlist[-1]
+            self.play_song()
+        if not self.stay_in_search_mode:
+            self.search_mode = False
+            self.display_song()
+
+    def select_previous_song(self):
+        if self.match_pos > 0:
+            self.match_pos -= 1
+            self.display_match()
 
     def clear_playlist(self):
         self.playlist = [self.song]
@@ -188,6 +257,7 @@ class Player:
         try:
             self.song = self.playlist[self.pl_pos]
             self.play_song()
+            self.paused = False
         except IndexError:
             self.pl_pos -= 1
 
@@ -195,9 +265,18 @@ class Player:
         if self.pl_pos > 0:
             self.pl_pos -= 1
             self.song = self.playlist[self.pl_pos]
+            self.paused = False
             self.play_song()
 
-    def search_library(self, action="play"):
+    def notify(self, notification):
+        sys.stdout.write(notification)
+        sys.stdout.flush()
+        sleep(MESSAGE_TIMEOUT)
+        self.display_song()
+
+
+    def search_library(self, action="play", stay=False):
+        self.stay_in_search_mode = stay
         try:
             # Screw x-compatibility.
             os.system('setterm -cursor on')
@@ -209,23 +288,28 @@ class Player:
         for song in self.api.get_all_songs():
             if any([search_text.lower() in song['title'].lower(),
                    search_text.lower() in song['artist'].lower(),
-                   search_text.lower() in song['album'].lower()
+                   search_text.lower() in song['album'].lower(),
                    ]):
                 matching_songs.append(song)
                 
         if not matching_songs:
-            sys.stdout.write("\rNo results found.      ")
-            sys.stdout.flush()
-            sleep(MESSAGE_TIMEOUT)
+            self.notify("\rNo results found.")
             return
+
         if action == "add_all":
+            self.paused = False
             self.playlist.extend(matching_songs)
         else:
-            self.playlist.append(TextMenu(matching_songs).show())
-            if action == "play":
-                self.song = self.playlist[-1]
-                self.pl_pos = len(self.playlist) - 1
-                self.play_song()
+            self.enter_search_mode(matching_songs, action)
+            # song = TextMenu(matching_songs).show()
+            # if song is not None:
+            #     self.playlist.append(song)
+            #     if action == "play":
+            #         self.song = self.playlist[-1]
+            #         self.pl_pos = len(self.playlist) - 1
+            #         self.paused = False
+            #         self.play_song()
+
 
         # self.song = matching_songs[1]
         # self.play_song()
@@ -248,35 +332,52 @@ class Player:
         # self.song = matching_songs[1]
         # self.play_song()
 
-
-    def display_song(self):
+    def update_song_display(self):
         if not self.paused:
             try:
-                s = unicode("\r[Playing] {s[title]} by {s[artist]}".format(
+                self.song_display = unicode("\r[Playing] {s[title]} by {s[artist]}".format(
                             s=self.song))
             except UnicodeEncodeError:
                 global strip_accents
                 # Don't remove this, I know it doesn't make sense but the code
                 # breaks without it there. 
-                s = "\r[Playing] {} by {}".format(
+                self.song_display = "\r[Playing] {} by {}".format(
                         strip_accents(self.song['title']),
                         strip_accents(self.song['artist']))
         else:
             try:
-                s = unicode("\r[Paused]  {s[title]} by {s[artist]}".format(
+                self.song_display = unicode("\r[Paused]  {s[title]} by {s[artist]}".format(
                         s=self.song))
             except UnicodeEncodeError:
                 import unicodedata
                 def strip_accents(s):
                     return ''.join(c for c in unicodedata.normalize('NFD', s) 
                         if unicodedata.category(c) != 'Mn')
-                s = "\r[Paused]  {} by {}".format(
+                self.song_display = "\r[Paused]  {} by {}".format(
                         strip_accents(self.song['title']),
                         strip_accents(self.song['artist']))
-        s += " " * (int(term_width()) - len(s) - 1)
+
+
+    def display_song(self):
+        s = self.song_display + " " * (int(term_width()) - len(self.song_display) + 1)
         sys.stdout.write(s)
         sys.stdout.flush()
 
+    def display_match(self):
+        song = self.current_match
+
+        result_display = song['title'] + " - " + song['artist']
+        player_display = self.song_display + "   ||   Search result: "
+        result_no = str(self.match_pos) + ". "
+
+        s = player_display + result_no + result_display
+        s += " " * (int(term_width()) - len(s) + 1)
+        sys.stdout.write(s)
+        sys.stdout.flush()
+
+    @property
+    def current_match(self):
+        return self.matches[self.match_pos]
 
     def api_login(self):
         return self.api.login(self.username, self.password)
