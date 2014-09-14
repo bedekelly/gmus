@@ -336,7 +336,8 @@ class Player:
     def update_song_display(self):
         if not self.paused:
             try:
-                self.song_display = unicode("\r[Playing] {s[title]} by {s[artist]}".format(
+                self.song_display = unicode(
+                    "\r[Playing] {s[title]} by {s[artist]}".format(
                             s=self.song))
             except UnicodeEncodeError:
                 global strip_accents
@@ -347,7 +348,8 @@ class Player:
                         strip_accents(self.song['artist']))
         else:
             try:
-                self.song_display = unicode("\r[Paused]  {s[title]} by {s[artist]}".format(
+                self.song_display = unicode(
+                    "\r[Paused]  {s[title]} by {s[artist]}".format(
                         s=self.song))
             except UnicodeEncodeError:
                 import unicodedata
@@ -360,7 +362,8 @@ class Player:
 
 
     def display_song(self):
-        s = self.song_display + " " * (int(term_width()) - len(self.song_display) + 1)
+        num_spaces = (int(term_width()) - len(self.song_display) + 1)
+        s = self.song_display + " " * num_spaces
         sys.stdout.write(s)
         sys.stdout.flush()
 
@@ -369,7 +372,7 @@ class Player:
 
         result_display = song['title'] + " - " + song['artist']
         player_display = self.song_display + "   ||   Search result: "
-        result_no = str(self.match_pos) + ". "
+        result_no = str(self.match_pos + 1) + ". "
 
         s = player_display + result_no + result_display
         s += " " * (int(term_width()) - len(s) + 1)
