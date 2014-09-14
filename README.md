@@ -15,3 +15,6 @@ Command list:
 	* Shift+Q - Quit
 	* c - Clear playlist. The current song will stay playing.
 	* z - Play a random song. The playlist remains intact, and the random song is appended to the end of it.
+
+
+Pressing Control-C on any 'Search:' prompt will safely cancel the request and return you to the main player interface.
