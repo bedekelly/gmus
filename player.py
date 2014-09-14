@@ -250,6 +250,7 @@ class Player:
     def handle_song_end(self, bus, message):
         if message.type == Gst.MessageType.EOS:
             self.next_song()
+            self.update_song_display()
             self.display_song()  # refresh
 
     def next_song(self):
