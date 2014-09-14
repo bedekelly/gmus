@@ -1,7 +1,0 @@
-The user_playlist_contents object contains a list of playlists. Each playlist is a dict.
-
-Inside each playlist dict there's a key 'tracks' which holds a list of song objects. Note that track objects are NOT the same as track objects. There's also a key 'name' which holds the playlist name.
-
-Inside most song objects, there's a key 'track', the corresponding value of which is identical to the song objects used in other parts of the program. My guess is that the songs which have this key are the songs which have been added to the user's library.
-
-Inside all song objects, there's a key 'trackId'. After implementing the songs which have been added to the library, it'd be useful to figure out if you could make a NonLibrarySong class or dict or something, just using the trackId. The android client can stream songs not in the library, after all.
