@@ -182,7 +182,8 @@ class Player(object):
         elif user_key == "<":
             self.previous_song()
         elif user_key == "Q":
-            break
+            os.system("setterm -cursor on")
+            quit()
         elif user_key == "a":
             self.search_library("add")
         elif user_key == "A":
