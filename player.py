@@ -24,9 +24,9 @@ MESSAGE_TIMEOUT = 1.5  # seconds
 
 
 class keys(object):
-    self.UP_SONG = "up"
-    self.DOWN_SONG = "down"
-    self.SELECT_SONG = "enter"
+    UP_SONG = "up"
+    DOWN_SONG = "down"
+    SELECT_SONG = "enter"
 
 def strip_accents(s):
     nrm = ''.join(c for c in unicodedata.normalize('NFD', s)
@@ -37,10 +37,11 @@ def strip_accents(s):
 class GetchUnix(object):
     """Implements getch for unix systems. Thanks StackOverflow."""
     def __init__(self):
-        import tty
+        pass
 
     def __call__(self):
         import termios
+        import tty
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
