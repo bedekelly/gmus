@@ -4,14 +4,12 @@ import gi
 import sys
 import thread
 import random
-import readline
+# import readline
 import gmusicapi
 import unicodedata
 from time import sleep
 from pprint import pprint
 from getpass import getpass
-from collections import namedtuple
-
 
 gi.require_version('Gst', '1.0')
 from gi.repository import GObject, Gst, GLib
@@ -94,7 +92,7 @@ class StreamPlayer(object):
 
 
 def term_width():
-    rows, columns = os.popen('stty size', 'r').read().split()
+    _, columns = os.popen('stty size', 'r').read().split()
     return columns
 
 
@@ -206,9 +204,9 @@ class Player(object):
 
     def add_playlist(self):
         raise NotImplementedError
-        playlists = self.api.get_all_playlists()
-        user_playlist_contents = self.api.get_all_user_playlist_contents()
-        pprint(user_playlist_contents)
+        # playlists = self.api.get_all_playlists()
+        # user_playlist_contents = self.api.get_all_user_playlist_contents()
+        # pprint(user_playlist_contents)
 
     def enter_search_mode(self, matches, action):
         self.search_mode = True
@@ -241,7 +239,7 @@ class Player(object):
         self.playlist = [self.song]
         self.pl_pos = 0
 
-    def handle_song_end(self, bus, message):
+    def handle_song_end(self, _, message):
         if message.type == Gst.MessageType.EOS:
             self.next_song()
             self.update_song_display()

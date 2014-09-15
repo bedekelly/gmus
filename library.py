@@ -1,6 +1,6 @@
 import gmusicapi
 import unicodedata
-from pprint import pprint
+# from pprint import pprint
 from getpass import getpass
 
 def strip_accents(s):
@@ -52,7 +52,7 @@ for artist in album_artists:
             try:
                 for song in album_songs[album]:
                     print("        " + (song['title'] or "Unknown Track"))
-            except:
+            except Exception:
                 pass
-    except:
+    except Exception:
         pass
