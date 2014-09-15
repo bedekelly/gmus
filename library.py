@@ -5,7 +5,7 @@ from getpass import getpass
 
 def strip_accents(s):
     nrm = ''.join(c for c in unicodedata.normalize('NFD', s) 
-        if unicodedata.category(c) != 'Mn')
+                  if unicodedata.category(c) != 'Mn')
     return nrm
 
 api = gmusicapi.Mobileclient()

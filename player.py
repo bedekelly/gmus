@@ -8,7 +8,7 @@ import random
 import gmusicapi
 import unicodedata
 from time import sleep
-from pprint import pprint
+# from pprint import pprint
 from getpass import getpass
 
 gi.require_version('Gst', '1.0')
@@ -28,7 +28,7 @@ class keys(object):
 
 def strip_accents(s):
     nrm = ''.join(c for c in unicodedata.normalize('NFD', s)
-        if unicodedata.category(c) != 'Mn')
+                  if unicodedata.category(c) != 'Mn')
     return nrm
 
 
@@ -109,8 +109,8 @@ def get_device_id(username, password):
         for device in devices:
             if device['type'] == 'PHONE':
                 return str(device['id'])[2:]
-        with open("device_id", "w") as id_file:
-            id_file.write(str(device['id']))
+        # with open("device_id", "w") as id_file:
+        #     id_file.write(str(device['id']))
 
 
 class TextMenu(object):
@@ -278,8 +278,8 @@ class Player(object):
         matching_songs = []
         for song in self.api.get_all_songs():
             if any([search_text.lower() in song['title'].lower(),
-                   search_text.lower() in song['artist'].lower(),
-                   search_text.lower() in song['album'].lower(),
+                    search_text.lower() in song['artist'].lower(),
+                    search_text.lower() in song['album'].lower(),
                    ]):
                 matching_songs.append(song)
         if not matching_songs:
@@ -296,11 +296,11 @@ class Player(object):
             try:
                 self.song_display = unicode(
                     "\r[Playing] {s[title]} by {s[artist]}".format(
-                            s=self.song))
+                        s=self.song))
             except UnicodeEncodeError:
                 self.song_display = "\r[Playing] {} by {}".format(
-                        strip_accents(self.song['title']),
-                        strip_accents(self.song['artist']))
+                    strip_accents(self.song['title']),
+                    strip_accents(self.song['artist']))
         else:
             try:
                 self.song_display = unicode(
@@ -309,10 +309,10 @@ class Player(object):
             except UnicodeEncodeError:
                 def strip_accents(s):
                     return ''.join(c for c in unicodedata.normalize('NFD', s)
-                        if unicodedata.category(c) != 'Mn')
+                                   if unicodedata.category(c) != 'Mn')
                 self.song_display = "\r[Paused]  {} by {}".format(
-                        strip_accents(self.song['title']),
-                        strip_accents(self.song['artist']))
+                    strip_accents(self.song['title']),
+                    strip_accents(self.song['artist']))
 
 
     def display_song(self):
