@@ -23,10 +23,10 @@ Gst.init(None)
 MESSAGE_TIMEOUT = 1.5  # seconds
 
 
-keys = namedtuple("keys", ["UP_SONG", "DOWN_SONG", "SELECT_SONG"])
-keys.UP_SONG = "up"
-keys.DOWN_SONG = "down"
-keys.SELECT_SONG = "enter"
+class keys(object):
+    keys.UP_SONG = "up"
+    keys.DOWN_SONG = "down"
+    keys.SELECT_SONG = "enter"
 
 def strip_accents(s):
     nrm = ''.join(c for c in unicodedata.normalize('NFD', s)
@@ -34,10 +34,10 @@ def strip_accents(s):
     return nrm
 
 
-class GetchUnix:
+class GetchUnix(object):
     """Implements getch for unix systems. Thanks StackOverflow."""
     def __init__(self):
-        import tty, sys
+        import tty
 
     def __call__(self):
         import sys, tty, termios
@@ -59,7 +59,7 @@ class GetchUnix:
         return ch
 
 
-class StreamPlayer:
+class StreamPlayer(object):
     """Handles the control of playbin2 from the Gst library."""
     def __init__(self):
         self._player = Gst.ElementFactory.make("playbin")
@@ -68,6 +68,10 @@ class StreamPlayer:
         self.stop()
         self._player.set_property('uri', URI)
         self.play()
+
+    @property
+    def player(self):
+        return _player
 
     def play(self):
         self.playing = True
@@ -89,7 +93,6 @@ class StreamPlayer:
 
 
 def term_width():
-    import os
     rows, columns = os.popen('stty size', 'r').read().split()
     return columns
 
@@ -111,7 +114,7 @@ def get_device_id(username, password):
             id_file.write(str(device['id']))
 
 
-class TextMenu:
+class TextMenu(object):
     def __init__(self, list_items):
         self.list_items = list_items
     def show(self):
@@ -126,7 +129,7 @@ class TextMenu:
                 return
 
 
-class Player:
+class Player(object):
     def __init__(self, username, password):
         self.device_id = get_device_id(username, password)
         self.username = username
@@ -148,7 +151,7 @@ class Player:
         self.get_random_song()
 
     def player_thread(self):
-        bus = self.stream_player._player.get_bus()
+        bus = self.stream_player.player.get_bus()
         bus.add_signal_watch()
         bus.connect("message", self.handle_song_end)
         GLib.MainLoop().run()
@@ -296,9 +299,6 @@ class Player:
                     "\r[Playing] {s[title]} by {s[artist]}".format(
                             s=self.song))
             except UnicodeEncodeError:
-                global strip_accents
-                # Don't remove this, I know it doesn't make sense but the code
-                # breaks without it there.
                 self.song_display = "\r[Playing] {} by {}".format(
                         strip_accents(self.song['title']),
                         strip_accents(self.song['artist']))
@@ -308,7 +308,6 @@ class Player:
                     "\r[Paused]  {s[title]} by {s[artist]}".format(
                         s=self.song))
             except UnicodeEncodeError:
-                import unicodedata
                 def strip_accents(s):
                     return ''.join(c for c in unicodedata.normalize('NFD', s)
                         if unicodedata.category(c) != 'Mn')
