@@ -170,33 +170,33 @@ class Player(object):
             self.update_song_display()
 
     def handle_input(self, user_key):
-            if user_key == " ":
-                self.paused = not self.paused
-                self.stream_player.toggle()
-            elif user_key == "z":
-                self.get_random_song()
-                self.pl_pos += 1
-                self.play_song()
-            elif user_key == ">":
-                self.next_song()
-            elif user_key == "<":
-                self.previous_song()
-            elif user_key == "Q":
-                break
-            elif user_key == "a":
-                self.search_library("add")
-            elif user_key == "A":
-                self.search_library("add", stay=True)
-            elif user_key == "s":
-                self.search_library("play")
-            elif user_key == "S":
-                self.search_library("add_all")
-            elif user_key == "c":
-                self.clear_playlist()
-            elif user_key == "p":
-                self.add_playlist()
-            elif self.search_mode:
-                self.search_mode_handle_input(user_key)
+        if user_key == " ":
+            self.paused = not self.paused
+            self.stream_player.toggle()
+        elif user_key == "z":
+            self.get_random_song()
+            self.pl_pos += 1
+            self.play_song()
+        elif user_key == ">":
+            self.next_song()
+        elif user_key == "<":
+            self.previous_song()
+        elif user_key == "Q":
+            break
+        elif user_key == "a":
+            self.search_library("add")
+        elif user_key == "A":
+            self.search_library("add", stay=True)
+        elif user_key == "s":
+            self.search_library("play")
+        elif user_key == "S":
+            self.search_library("add_all")
+        elif user_key == "c":
+            self.clear_playlist()
+        elif user_key == "p":
+            self.add_playlist()
+        elif self.search_mode:
+            self.search_mode_handle_input(user_key)
 
     def search_mode_handle_input(self, user_key):
         if user_key == keys.UP_SONG:
