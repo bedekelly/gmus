@@ -24,9 +24,9 @@ MESSAGE_TIMEOUT = 1.5  # seconds
 
 
 class keys(object):
-    keys.UP_SONG = "up"
-    keys.DOWN_SONG = "down"
-    keys.SELECT_SONG = "enter"
+    self.UP_SONG = "up"
+    self.DOWN_SONG = "down"
+    self.SELECT_SONG = "enter"
 
 def strip_accents(s):
     nrm = ''.join(c for c in unicodedata.normalize('NFD', s)
@@ -40,7 +40,7 @@ class GetchUnix(object):
         import tty
 
     def __call__(self):
-        import sys, tty, termios
+        import termios
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
@@ -71,7 +71,7 @@ class StreamPlayer(object):
 
     @property
     def player(self):
-        return _player
+        return self._player
 
     def play(self):
         self.playing = True
