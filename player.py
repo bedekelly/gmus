@@ -8,8 +8,8 @@ import readline
 import gmusicapi
 import unicodedata
 from time import sleep
-from getpass import getpass
 from pprint import pprint
+from getpass import getpass
 from collections import namedtuple
 
 
@@ -23,13 +23,13 @@ Gst.init(None)
 MESSAGE_TIMEOUT = 1.5  # seconds
 
 
-keys = namedtuple("keys", ["UP_SONG", "DOWN_SONG"])
+keys = namedtuple("keys", ["UP_SONG", "DOWN_SONG", "SELECT_SONG"])
 keys.UP_SONG = "up"
 keys.DOWN_SONG = "down"
-
+keys.SELECT_SONG = "enter"
 
 def strip_accents(s):
-    nrm = ''.join(c for c in unicodedata.normalize('NFD', s) 
+    nrm = ''.join(c for c in unicodedata.normalize('NFD', s)
         if unicodedata.category(c) != 'Mn')
     return nrm
 
@@ -53,7 +53,7 @@ class GetchUnix:
                 elif next_ch in ["B", "D"]:
                     return keys.DOWN_SONG
             elif ord(ch) == 13:
-                return "\n"
+                return keys.SELECT_SONG
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return ch
@@ -61,10 +61,8 @@ class GetchUnix:
 
 class StreamPlayer:
     """Handles the control of playbin2 from the Gst library."""
-    def __init__(self, main_player):
-        self._player = Gst.ElementFactory.make("playbin")  # "player" or None
-        # self.playing = False
-        # self.stop()
+    def __init__(self):
+        self._player = Gst.ElementFactory.make("playbin")
 
     def change_song(self, URI):
         self.stop()
@@ -88,10 +86,6 @@ class StreamPlayer:
     def stop(self):
         self.playing = False
         self._player.set_state(Gst.State.NULL)
-
-
-def notify(txt):
-    print(txt)
 
 
 def term_width():
@@ -140,14 +134,14 @@ class Player:
         self.api = gmusicapi.Mobileclient()
         self.search_mode = False
         self.logged_in = self.api_login()
-        self.stream_player = StreamPlayer(self)
+        self.stream_player = StreamPlayer()
         self.stream_player.play()
         self.paused = False
         self.playlist = []
         self.pl_pos = 0
         if self.logged_in:
-            print("Logged in successfully!")
-            print("Loading player now...")
+            sys.stdout.write("Logged in successfully! Loading player now...")
+            sys.stdout.flush()
         else:
             print("Login failed.")
             quit()
@@ -155,11 +149,8 @@ class Player:
 
     def player_thread(self):
         bus = self.stream_player._player.get_bus()
-        try:
-            bus.add_signal_watch()
-            bus.connect("message", self.handle_song_end)
-        except:
-            print("Big thing")
+        bus.add_signal_watch()
+        bus.connect("message", self.handle_song_end)
         GLib.MainLoop().run()
 
     def beginloop(self):
@@ -198,19 +189,19 @@ class Player:
                 self.clear_playlist()
             elif user_key == "p":
                 self.add_playlist()
-            else:
-                if self.search_mode:
-                    if user_key == keys.UP_SONG:
-                        self.select_previous_song()
-                    elif user_key == keys.DOWN_SONG:
-                        self.select_next_song()
-                    elif user_key == "\n":
-                        self.search_mode_handle_select()
-                    elif user_key in ["q", "c"]:
-                        self.search_mode = False
+            elif self.search_mode:
+                if user_key == keys.UP_SONG:
+                    self.select_previous_song()
+                elif user_key == keys.DOWN_SONG:
+                    self.select_next_song()
+                elif user_key == keys.SELECT_SONG:
+                    self.search_mode_handle_select()
+                elif user_key in ["q", "c"]:
+                    self.search_mode = False
             self.update_song_display()
 
     def add_playlist(self):
+        raise NotImplementedError
         playlists = self.api.get_all_playlists()
         user_playlist_contents = self.api.get_all_user_playlist_contents()
         pprint(user_playlist_contents)
@@ -220,13 +211,12 @@ class Player:
         self.matches = matches
         self.search_mode_action = action
         self.match_pos = 0
-        self.display_match()  # First match, i.e. matches[0]
+        self.display_match()
 
     def select_next_song(self):
         if self.match_pos < len(self.matches) - 1:
             self.match_pos += 1
             self.display_match()
-
 
     def search_mode_handle_select(self):
         self.playlist.append(self.current_match)
@@ -251,7 +241,7 @@ class Player:
         if message.type == Gst.MessageType.EOS:
             self.next_song()
             self.update_song_display()
-            self.display_song()  # refresh
+            self.display_song()
 
     def next_song(self):
         self.pl_pos += 1
@@ -275,11 +265,9 @@ class Player:
         sleep(MESSAGE_TIMEOUT)
         self.display_song()
 
-
     def search_library(self, action="play", stay=False):
         self.stay_in_search_mode = stay
         try:
-            # Screw x-compatibility.
             os.system('setterm -cursor on')
             search_text = raw_input("\nSearch: ")
             os.system('setterm -cursor off')
@@ -292,46 +280,14 @@ class Player:
                    search_text.lower() in song['album'].lower(),
                    ]):
                 matching_songs.append(song)
-                
         if not matching_songs:
             self.notify("\rNo results found.")
             return
-
         if action == "add_all":
             self.paused = False
             self.playlist.extend(matching_songs)
         else:
             self.enter_search_mode(matching_songs, action)
-            # song = TextMenu(matching_songs).show()
-            # if song is not None:
-            #     self.playlist.append(song)
-            #     if action == "play":
-            #         self.song = self.playlist[-1]
-            #         self.pl_pos = len(self.playlist) - 1
-            #         self.paused = False
-            #         self.play_song()
-
-
-        # self.song = matching_songs[1]
-        # self.play_song()
-
-    def search_all_access(self):
-        try:
-            # Screw x-compatibility.
-            os.system('setterm -cursor on')
-            search_text = raw_input("\nSearch: ")
-            os.system('setterm -cursor off')
-        except (EOFError, KeyboardInterrupt):
-            return
-        matching_songs = self.api.search_all_access(search_text)
-        if not matching_songs:
-            sys.stdout.write("\rNo results found.      ")
-            sys.stdout.flush()
-            sleep(MESSAGE_TIMEOUT)
-            return
-        self.playlist.append(TextMenu(matching_songs).show())  # FIXME
-        # self.song = matching_songs[1]
-        # self.play_song()
 
     def update_song_display(self):
         if not self.paused:
@@ -342,7 +298,7 @@ class Player:
             except UnicodeEncodeError:
                 global strip_accents
                 # Don't remove this, I know it doesn't make sense but the code
-                # breaks without it there. 
+                # breaks without it there.
                 self.song_display = "\r[Playing] {} by {}".format(
                         strip_accents(self.song['title']),
                         strip_accents(self.song['artist']))
@@ -354,7 +310,7 @@ class Player:
             except UnicodeEncodeError:
                 import unicodedata
                 def strip_accents(s):
-                    return ''.join(c for c in unicodedata.normalize('NFD', s) 
+                    return ''.join(c for c in unicodedata.normalize('NFD', s)
                         if unicodedata.category(c) != 'Mn')
                 self.song_display = "\r[Paused]  {} by {}".format(
                         strip_accents(self.song['title']),
@@ -369,11 +325,9 @@ class Player:
 
     def display_match(self):
         song = self.current_match
-
         result_display = song['title'] + " - " + song['artist']
         player_display = self.song_display + "   ||   Search result: "
         result_no = str(self.match_pos + 1) + ". "
-
         s = player_display + result_no + result_display
         s += " " * (int(term_width()) - len(s) + 1)
         sys.stdout.write(s)
@@ -409,9 +363,7 @@ def main():
     disable_warnings()
     while True:
         username = raw_input("Username: ")
-        # # notify("A password is required to use Google Music.")
         password = getpass()
-        print("Logging you in now...")
         try:
             player = Player(username, password)
             player.beginloop()
@@ -425,7 +377,6 @@ def main():
 
 
 if __name__ == "__main__":
-    # Implement single-character grabbing from stdin.
     try:
         from msvcrt import getch
     except ImportError:
