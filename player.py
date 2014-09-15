@@ -166,6 +166,10 @@ class Player(object):
             else:
                 self.display_match()
             user_key = getch()
+            self.handle_input(user_key)
+            self.update_song_display()
+
+    def handle_input(self, user_key):
             if user_key == " ":
                 self.paused = not self.paused
                 self.stream_player.toggle()
@@ -192,15 +196,17 @@ class Player(object):
             elif user_key == "p":
                 self.add_playlist()
             elif self.search_mode:
-                if user_key == keys.UP_SONG:
-                    self.select_previous_song()
-                elif user_key == keys.DOWN_SONG:
-                    self.select_next_song()
-                elif user_key == keys.SELECT_SONG:
-                    self.search_mode_handle_select()
-                elif user_key in ["q", "c"]:
-                    self.search_mode = False
-            self.update_song_display()
+                self.search_mode_handle_input(user_key)
+
+    def search_mode_handle_input(self, user_key):
+        if user_key == keys.UP_SONG:
+            self.select_previous_song()
+        elif user_key == keys.DOWN_SONG:
+            self.select_next_song()
+        elif user_key == keys.SELECT_SONG:
+            self.search_mode_handle_select()
+        elif user_key in ["q", "c"]:
+            self.search_mode = False
 
     def add_playlist(self):
         raise NotImplementedError
