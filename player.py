@@ -177,7 +177,7 @@ class Player(object):
             self.previous_song()
         elif user_key == "Q":
             os.system("setterm -cursor on")
-            print()
+            print
             quit()
         elif user_key == "a":
             self.search_library("add")
@@ -245,8 +245,10 @@ class Player(object):
         if message.type == Gst.MessageType.EOS:
             self.next_song()
             self.update_song_display()
-            self.display_song()
-
+            if not self.search_mode:
+                self.display_song()
+            else:
+                self.display_match()
     def next_song(self):
         self.pl_pos += 1
         try:
@@ -277,13 +279,7 @@ class Player(object):
             os.system('setterm -cursor off')
         except (EOFError, KeyboardInterrupt):
             return
-        matching_songs = []
-        for song in self.api.get_all_songs():
-            if any([search_text.lower() in song['title'].lower(),
-                    search_text.lower() in song['artist'].lower(),
-                    search_text.lower() in song['album'].lower(),
-                   ]):
-                matching_songs.append(song)
+        matching_songs = self.get_search_results(search_text)
         if not matching_songs:
             self.notify("\rNo results found.")
             return
@@ -292,6 +288,28 @@ class Player(object):
             self.playlist.extend(matching_songs)
         else:
             self.enter_search_mode(matching_songs, action)
+
+    def get_search_results(self, search_text):
+        def nopunc(text):
+            return ''.join(i for i in text if i.isalpha())
+
+        matching_songs = []
+        common_words = {"on", "the", "in", "of", "and", "or", "a"}
+        words = [nopunc(word.lower()) for word in search_text.split()
+                 if word.lower() not in common_words]
+        for song in self.api.get_all_songs():
+            # if any([search_text.lower() in song['title'].lower(),
+            #         search_text.lower() in song['artist'].lower(),
+            #         search_text.lower() in song['album'].lower(),
+            #        ]):
+            #     matching_songs.append(song)
+            if all(any([word in song['album'].lower(),
+                        word in song['title'].lower(),
+                        word in song['albumArtist'].lower(),
+                        word in song['artist'].lower()])
+                    for word in words):
+                matching_songs.append(song)
+        return matching_songs
 
     def update_song_display(self):
         if not self.paused:
@@ -374,7 +392,7 @@ def main():
         else:
             break
     os.system('setterm -cursor on')
-    print
+    print()
 
 
 if __name__ == "__main__":
