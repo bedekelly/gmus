@@ -62,7 +62,7 @@ def getch_unix():
 class StreamPlayer(object):
     """Handles the control of playbin2 from the Gst library."""
     def __init__(self):
-        self._player = Gst.ElementFactory.make("playbin")
+        self._player = Gst.ElementFactory.make("playbin", "player")
 
     def change_song(self, URI):
         self.stop()
