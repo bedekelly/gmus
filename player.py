@@ -31,31 +31,27 @@ def strip_accents(s):
                   if unicodedata.category(c) != 'Mn')
     return nrm
 
-
-class GetchUnix(object):
+    
+def getch_unix():
     """Implements getch for unix systems. Thanks StackOverflow."""
-    def __init__(self):
-        pass
-
-    def __call__(self):
-        import termios
-        import tty
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(sys.stdin.fileno())
-            ch = sys.stdin.read(1)
-            if (ch == chr(27)):
-                next_ch = sys.stdin.read(2)[1]
-                if next_ch in ["A", "D"]:
-                    return keys.UP_SONG
-                elif next_ch in ["B", "D"]:
-                    return keys.DOWN_SONG
-            elif ord(ch) == 13:
-                return keys.SELECT_SONG
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        return ch
+    import termios
+    import tty
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        ch = sys.stdin.read(1)
+        if (ch == chr(27)):
+            next_ch = sys.stdin.read(2)[1]
+            if next_ch in ["A", "D"]:
+                return keys.UP_SONG
+            elif next_ch in ["B", "D"]:
+                return keys.DOWN_SONG
+        elif ord(ch) == 13:
+            return keys.SELECT_SONG
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return ch
 
 
 class StreamPlayer(object):
@@ -109,8 +105,6 @@ def get_device_id(username, password):
         for device in devices:
             if device['type'] == 'PHONE':
                 return str(device['id'])[2:]
-        # with open("device_id", "w") as id_file:
-        #     id_file.write(str(device['id']))
 
 
 class TextMenu(object):
@@ -183,6 +177,7 @@ class Player(object):
             self.previous_song()
         elif user_key == "Q":
             os.system("setterm -cursor on")
+            print()
             quit()
         elif user_key == "a":
             self.search_library("add")
@@ -357,6 +352,7 @@ class Player(object):
     def play_song(self):
         song_url = self.api.get_stream_url(self.song['id'], self.device_id)
         self.play_url(song_url)
+        self.paused = False
 
 
 def disable_warnings():
@@ -385,7 +381,7 @@ if __name__ == "__main__":
     try:
         from msvcrt import getch
     except ImportError:
-        getch = GetchUnix()
+        getch = getch_unix
     try:
         main()
     except Exception:
