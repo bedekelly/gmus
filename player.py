@@ -26,12 +26,17 @@ class keys(object):
     DOWN_SONG = "down"
     SELECT_SONG = "enter"
 
+
 def strip_accents(s):
     nrm = ''.join(c for c in unicodedata.normalize('NFD', s)
                   if unicodedata.category(c) != 'Mn')
     return nrm
 
-    
+
+def term_title(text):
+    sys.stdout.write("\x1b]2;{}\x07".format(text))
+
+
 def getch_unix():
     """Implements getch for unix systems. Thanks StackOverflow."""
     import termios
@@ -333,6 +338,7 @@ class Player(object):
                 self.song_display = "\r[Paused]  {} by {}".format(
                     strip_accents(self.song['title']),
                     strip_accents(self.song['artist']))
+        term_title(self.song_display)
 
 
     def display_song(self):
