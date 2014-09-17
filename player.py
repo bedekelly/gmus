@@ -332,9 +332,6 @@ class Player(object):
                     "\r[Paused]  {s[title]} by {s[artist]}".format(
                         s=self.song))
             except UnicodeEncodeError:
-                def strip_accents(s):
-                    return ''.join(c for c in unicodedata.normalize('NFD', s)
-                                   if unicodedata.category(c) != 'Mn')
                 self.song_display = "\r[Paused]  {} by {}".format(
                     strip_accents(self.song['title']),
                     strip_accents(self.song['artist']))
