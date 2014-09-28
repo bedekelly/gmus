@@ -140,6 +140,7 @@ class Player(object):
         self.paused = False
         self.playlist = []
         self.pl_pos = 0
+        self.pl_search_mode = False
         if self.logged_in:
             sys.stdout.write("Logged in successfully! Loading player now...")
             sys.stdout.flush()
@@ -158,15 +159,21 @@ class Player(object):
         self.play_song()
         thread.start_new_thread(self.player_thread, ())
         self.update_song_display()
+        print(self.api.get_all_user_playlist_contents().keys())
         while True:
             os.system('setterm -cursor off')
-            if not self.search_mode:
-                self.display_song()
-            else:
+            if self.search_mode:
                 self.display_match()
+            elif self.pl_search_mode:
+                self.display_pl_match()
+            else:
+                display_song()
             user_key = getch()
             self.handle_input(user_key)
             self.update_song_display()
+
+    def get_playlist_by_id(pl_id):
+        return [p for p in self.pl_matches if p['id'] == pl_id][0]
 
     def handle_input(self, user_key):
         if user_key == " ":
@@ -195,11 +202,27 @@ class Player(object):
         elif user_key == "c":
             self.clear_playlist()
         elif user_key == "p":
-            self.add_playlist()
+            self.search_playlists("add")
+        elif user_key == "P":
+            self.search_playlists("play")
         elif user_key == "s":
             self.toggle_shuffle()
         elif self.search_mode:
             self.search_mode_handle_input(user_key)
+        elif self.pl_search_mode:
+            self.pl_search_mode_handle_input(user_key)
+
+
+    def pl_search_mode_handle_input(user_key):
+        if user_key == keys.UP_SONG:
+            self.select_previous_playlist()
+        elif user_key == keys.DOWN_SONG:
+            self.select_next_playlist()
+        elif user_key == keys.SELECT_SONG:
+            self.pl_search_mode_handle_select()
+        elif user_key in ["q", "c"]:
+            self.pl_search_mode = False
+
 
     def search_mode_handle_input(self, user_key):
         if user_key == keys.UP_SONG:
@@ -214,16 +237,28 @@ class Player(object):
     def toggle_shuffle(self):
         self.shuffle = not self.shuffle
 
-    def add_playlist(self):
-        raise NotImplementedError
-        # playlists = self.api.get_all_playlists()
-        # user_playlist_contents = self.api.get_all_user_playlist_contents()
-        # pprint(user_playlist_contents)
+    def search_playlists(self, action):
+        try:
+            os.system('setterm -cursor on')
+            search_text = raw_input("\nSearch: ")
+            os.system('setterm -cursor off')
+        except (EOFError, KeyboardInterrupt):
+            return
+        self.pl_matches = self.get_pl_matches(search_text)
+        self.enter_pl_search_mode(action)
 
-    def enter_search_mode(self, matches, action):
+
+    def enter_pl_search_mode(self, action):
+        self.pl_search_mode = True
+        self.pl_search_action = action
+        self.pl_match_pos = 0
+        self.display_pl_match()
+
+    def enter_search_mode(self, matches, action, search_type):
         self.search_mode = True
         self.matches = matches
         self.search_mode_action = action
+        self.search_mode_type = search_type
         self.match_pos = 0
         self.display_match()
 
@@ -241,6 +276,9 @@ class Player(object):
         if not self.stay_in_search_mode:
             self.search_mode = False
             self.display_song()
+
+    def pl_search_mode_handle_select(self):
+        self. 
 
     def select_previous_song(self):
         if self.match_pos > 0:
