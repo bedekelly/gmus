@@ -6,6 +6,7 @@ GMus
 [![Code Health](https://landscape.io/github/bedekelly/gmus/master/landscape.png)](https://landscape.io/github/bedekelly/gmus/master)
 
 Get all dependencies:
+
     curl -l https://raw.githubusercontent.com/bedekelly/gmus/master/deps|bash
 
 Optimised to run in a terminal on a single console line, using all kinds of horrible tricks.
