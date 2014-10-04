@@ -5,6 +5,9 @@ GMus
 
 [![Code Health](https://landscape.io/github/bedekelly/gmus/master/landscape.png)](https://landscape.io/github/bedekelly/gmus/master)
 
+Get all dependencies:
+    curl -l https://raw.githubusercontent.com/bedekelly/gmus/master/deps|bash
+
 Optimised to run in a terminal on a single console line, using all kinds of horrible tricks.
 
 While this started off as a fork of Dan Nixon's PlayMusicCL, it ended up being almost completely different in the way it worked. All credits go to him for the initial idea though, and for the idea of using pygst (however much grief it was to port to 1.0!).
