@@ -19,15 +19,15 @@ Shame it's stuck with Python 2.x though (API has troubles with OAuth, and really
 
 Command list:
 	
-	* a - Adds a file to the end of the playlist
-	* s - As above, but also begins playing it. Playlist is unchanged.
-	* < - Skip to previous song
-	* > - Skip to next song
-	* Space - Play/Pause
-	* Shift+Q - Quit
-	* c - Clear playlist. The current song will stay playing.
-	* z - Play a random song. The playlist remains intact, and the random song is appended to the end of it.
-	* Shift+S - Append all search results to playlist.
-	* Shift+A - Adds a file to the end of the playlist, but keeps the search results loaded. Press q to get rid of them.
+	a - Adds a file to the end of the playlist
+	s - As above, but also begins playing it. Playlist is unchanged.
+	< - Skip to previous song
+	> - Skip to next song
+	Space - Play/Pause
+	Shift+Q - Quit
+	c - Clear playlist. The current song will stay playing.
+	z - Play a random song. The playlist remains intact, and the random song is appended to the end of it.
+	Shift+S - Append all search results to playlist.
+	Shift+A - Adds a file to the end of the playlist, but keeps the search results loaded. Press q to get rid of them.
 
 Pressing Control-C on any 'Search:' prompt will safely cancel the request and return you to the main player interface.
