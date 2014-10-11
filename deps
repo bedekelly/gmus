@@ -1,3 +1,3 @@
 sudo apt-get install python-gi
 sudo pip install gmusicapi
-sudo apt-get install .*libgstreamer1.0.*
+sudo apt-get install .*gstreamer1.0.*
