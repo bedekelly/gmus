@@ -166,6 +166,7 @@ class Player(object):
                 self.display_match()
             user_key = getch()
             self.handle_input(user_key)
+            os.system("clear")
             self.update_song_display()
 
     def handle_input(self, user_key):
@@ -326,7 +327,7 @@ class Player(object):
         if not self.paused:
             try:
                 self.song_display = unicode(
-                    "\r[Playing]{h} {s[title]} by {s[artist]}".format(
+                    "\r[Playing]{h} {s[title]} by {s[artist]} from {s[album]}".format(
                         s=self.song, h="[S]" if self.shuffle else ""))
             except UnicodeEncodeError:
                 self.song_display = "\r[Playing]{h} {} by {}".format(
@@ -336,7 +337,7 @@ class Player(object):
         else:
             try:
                 self.song_display = unicode(
-                    "\r[Paused]{h}  {s[title]} by {s[artist]}".format(
+                    "\r[Paused]{h}  {s[title]} by {s[artist]} from {s[album]}".format(
                         s=self.song,
                         h="[S]" if self.shuffle else "",))
             except UnicodeEncodeError:
@@ -355,7 +356,7 @@ class Player(object):
 
     def display_match(self):
         song = self.current_match
-        result_display = song['title'] + " - " + song['artist']
+        result_display = " - ".join([song['title'], song['artist'], song['album']])
         player_display = self.song_display + "   ||   Search result: "
         result_no = str(self.match_pos + 1) + ". "
         s = player_display + result_no + result_display
