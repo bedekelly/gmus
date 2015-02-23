@@ -126,7 +126,7 @@ class TextMenu(object):
                 return
 
 
-class Player(object):
+class Player:
     def __init__(self, username, password):
         self.device_id = get_device_id(username, password)
         self.username = username
