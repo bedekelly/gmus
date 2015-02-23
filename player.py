@@ -4,7 +4,7 @@ import gi
 import sys
 import thread
 import random
-import readline
+import readline # pylint: disable=unused-import
 import gmusicapi
 import unicodedata
 from time import sleep
