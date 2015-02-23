@@ -216,7 +216,9 @@ class Player(object):
         self.shuffle = not self.shuffle
 
     def add_playlist(self):
-        raise NotImplementedError
+        pass
+        # raise NotImplementedError  <- removing this for now as it confuses PyLint
+        
         # playlists = self.api.get_all_playlists()
         # user_playlist_contents = self.api.get_all_user_playlist_contents()
         # pprint(user_playlist_contents)
