@@ -203,7 +203,7 @@ class Player(object):
         elif user_key == "c":
             self.clear_playlist()
         elif user_key == "p":
-            ... # self.add_playlist()
+            pass # self.add_playlist()
         elif user_key == "s":
             self.toggle_shuffle()
         elif self.search_mode:
