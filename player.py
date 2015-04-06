@@ -17,6 +17,9 @@ GObject.threads_init()
 GLib.threads_init()
 Gst.init(None)
 
+from requests.packages import urllib3
+urllib3.disable_warnings()
+
 MESSAGE_TIMEOUT = 1.5  # seconds
 
 
