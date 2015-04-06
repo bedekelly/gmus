@@ -2,26 +2,29 @@
 import os
 import gi
 import sys
+import tty
 import thread
 import random
-import readline # pylint: disable=unused-import
+import termios
+import readline
 import gmusicapi
 import unicodedata
 from time import sleep
 from getpass import getpass
 
+# Initialise the streaming library
 gi.require_version('Gst', '1.0')
 from gi.repository import GObject, Gst, GLib
-
 GObject.threads_init()
 GLib.threads_init()
 Gst.init(None)
 
+# Hide warnings about insecure connections: it's an outdated API.
 from requests.packages import urllib3
 urllib3.disable_warnings()
 
+# Set the time for which status messages will be displayed.
 MESSAGE_TIMEOUT = 1.5  # seconds
-
 
 class keys(object):
     UP_SONG = "up"
@@ -30,19 +33,19 @@ class keys(object):
 
 
 def strip_accents(s):
+    """Normalise unicode text, for compatibility with Google's search."""
     nrm = ''.join(c for c in unicodedata.normalize('NFD', s)
                   if unicodedata.category(c) != 'Mn')
     return nrm
 
 
 def term_title(text):
+    """Set the terminal title, in this case to the currently playing song."""
     sys.stdout.write("\x1b]2;{}\x07".format(text))
 
 
 def getch_unix():
     """Implements getch for unix systems. Thanks StackOverflow."""
-    import termios
-    import tty
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:
@@ -62,26 +65,23 @@ def getch_unix():
 
 
 class StreamPlayer(object):
-    """Handles the control of playbin2 from the Gst library."""
+    """Handles the control of playbin from the Gst library."""
     def __init__(self):
-        self._player = Gst.ElementFactory.make("playbin", "player")
+        self.player = Gst.ElementFactory.make("playbin", "player")
 
     def change_song(self, URI):
+        """Start playing the requested song."""
         self.stop()
-        self._player.set_property('uri', URI)
+        self.player.set_property('uri', URI)
         self.play()
-
-    @property
-    def player(self):
-        return self._player
 
     def play(self):
         self.playing = True
-        self._player.set_state(Gst.State.PLAYING)
+        self.player.set_state(Gst.State.PLAYING)
 
     def pause(self):
         self.playing = False
-        self._player.set_state(Gst.State.PAUSED)
+        self.player.set_state(Gst.State.PAUSED)
 
     def toggle(self):
         if self.playing:
@@ -91,20 +91,23 @@ class StreamPlayer(object):
 
     def stop(self):
         self.playing = False
-        self._player.set_state(Gst.State.NULL)
+        self.player.set_state(Gst.State.NULL)
 
 
 def term_width():
+    """Return the width of the current terminal (emulator)."""
     _, columns = os.popen('stty size', 'r').read().split()
     return columns
 
 
 def get_device_id(username, password):
-    """Handles retrieving an android device ID to enable streaming."""
+    """Handles retrieving an android device ID to enable streaming auth."""
+    # If we already have a device ID saved, return it.
     if os.path.exists("./device_id"):
         with open("device_id") as id_file:
             device_id = id_file.read().strip()
         return device_id
+    # Otherwise, get one from the API.
     else:
         api = gmusicapi.Webclient()
         api.login(username, password)
@@ -118,6 +121,7 @@ class TextMenu(object):
     def __init__(self, list_items):
         self.list_items = list_items
     def show(self):
+        """Display a text menu, and return the choice."""
         for i, s in enumerate(self.list_items):
             orig_data = [s['title'], s['artist'], s['album']]
             data = [str(strip_accents(tag)) for tag in orig_data]
@@ -199,7 +203,7 @@ class Player(object):
         elif user_key == "c":
             self.clear_playlist()
         elif user_key == "p":
-            self.add_playlist()
+            ... # self.add_playlist()
         elif user_key == "s":
             self.toggle_shuffle()
         elif self.search_mode:
@@ -239,6 +243,7 @@ class Player(object):
             self.display_match()
 
     def search_mode_handle_select(self):
+        """The user just selected a song, while in search mode."""
         self.playlist.append(self.current_match)
         if self.search_mode_action == "play":
             self.pl_pos = len(self.playlist) - 1
@@ -258,6 +263,7 @@ class Player(object):
         self.pl_pos = 0
 
     def handle_song_end(self, _, message):
+        """Callback for when the currently playing song ends."""
         if message.type == Gst.MessageType.EOS:
             self.next_song()
             self.update_song_display()
