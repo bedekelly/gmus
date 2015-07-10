@@ -27,6 +27,7 @@ urllib3.disable_warnings()
 MESSAGE_TIMEOUT = 1.5  # seconds
 
 class keys(object):
+    """Enumerate the non-character key-types we need to check for."""
     UP_SONG = "up"
     DOWN_SONG = "down"
     SELECT_SONG = "enter"
@@ -40,26 +41,30 @@ def strip_accents(s):
 
 
 def term_title(text):
-    """Set the terminal title, in this case to the currently playing song."""
+    """Set the terminal title to 'text'."""
     sys.stdout.write("\x1b]2;{}\x07".format(text))
 
 
 def getch_unix():
-    """Implements getch for unix systems. Thanks StackOverflow."""
+    """Implements getch for unix systems. Modified from a StackOverflow answer."""
+    # Store the terminal's current settings.
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:
+        # Get each character as it's typed, without needing a Return.
         tty.setraw(sys.stdin.fileno())
         ch = sys.stdin.read(1)
-        if (ch == chr(27)):
+        if ch == chr(27):
             next_ch = sys.stdin.read(2)[1]
-            if next_ch in ["A", "D"]:
-                return keys.UP_SONG
-            elif next_ch in ["B", "D"]:
-                return keys.DOWN_SONG
+            # Map WASD to the arrow-keys.
+            if next_ch in ["A", "W"]:
+                ch = keys.UP_SONG
+            elif next_ch in ["S", "D"]:
+                ch = keys.DOWN_SONG
         elif ord(ch) == 13:
             return keys.SELECT_SONG
     finally:
+        # Restore the initial terminal settings.
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return ch
 
@@ -95,47 +100,26 @@ class StreamPlayer(object):
 
 
 def term_width():
-    """Return the width of the current terminal (emulator)."""
+    """Return the width of the current terminal."""
     _, columns = os.popen('stty size', 'r').read().split()
     return columns
 
 
-def get_device_id(username, password):
-    """Handles retrieving an android device ID to enable streaming auth."""
-    # If we already have a device ID saved, return it.
-    if os.path.exists("./device_id"):
-        with open("device_id") as id_file:
+def get_device_id():
+    """Retrieves the android device ID from $USER/.device_id."""
+    dev_id_path = os.path.expanduser("~/.device_id")
+    if os.path.exists(dev_id_path):
+        # If we already have a device ID saved, return it.
+        with open(dev_id_path) as id_file:
             device_id = id_file.read().strip()
         return device_id
-    # Otherwise, get one from the API.
     else:
-        api = gmusicapi.Webclient()
-        api.login(username, password)
-        devices = api.get_registered_devices()
-        for device in devices:
-            if device['type'] == 'PHONE':
-                return str(device['id'])[2:]
-
-
-class TextMenu(object):
-    def __init__(self, list_items):
-        self.list_items = list_items
-    def show(self):
-        """Display a text menu, and return the choice."""
-        for i, s in enumerate(self.list_items):
-            orig_data = [s['title'], s['artist'], s['album']]
-            data = [str(strip_accents(tag)) for tag in orig_data]
-            print("{}. {} - {} - {}".format(str(i+1), *data))
-        while True:
-            try:
-                return self.list_items[int(raw_input("Choice: ")) - 1]
-            except (ValueError, KeyboardInterrupt, EOFError):
-                return
+        raise Exception("Store your device ID at ~/.device_id")
 
 
 class Player(object):
     def __init__(self, username, password):
-        self.device_id = get_device_id(username, password)
+        self.device_id = get_device_id()
         self.username = username
         self.shuffle = False
         self.password = password
@@ -153,7 +137,7 @@ class Player(object):
         else:
             print("Login failed.")
             quit()
-        self.get_random_song()
+        self.add_random_song()
 
     def player_thread(self):
         bus = self.stream_player.player.get_bus()
@@ -203,7 +187,7 @@ class Player(object):
         elif user_key == "c":
             self.clear_playlist()
         elif user_key == "p":
-            pass # self.add_playlist()
+            self.add_playlist()
         elif user_key == "s":
             self.toggle_shuffle()
         elif self.search_mode:
@@ -221,14 +205,6 @@ class Player(object):
 
     def toggle_shuffle(self):
         self.shuffle = not self.shuffle
-
-    def add_playlist(self):
-        pass
-        # raise NotImplementedError  <- removing this for now as it confuses PyLint
-        
-        # playlists = self.api.get_all_playlists()
-        # user_playlist_contents = self.api.get_all_user_playlist_contents()
-        # pprint(user_playlist_contents)
 
     def enter_search_mode(self, matches, action):
         self.search_mode = True
@@ -273,6 +249,7 @@ class Player(object):
                 self.display_match()
 
     def next_song(self):
+        """Move to the next song in the playlist."""
         self.pl_pos += 1
         try:
             if self.shuffle:
@@ -286,6 +263,7 @@ class Player(object):
             self.pl_pos -= 1
 
     def previous_song(self):
+        """Move to the previous song in the playlist."""
         if self.pl_pos > 0:
             self.pl_pos -= 1
             self.song = self.playlist[self.pl_pos]
@@ -293,17 +271,18 @@ class Player(object):
             self.play_song()
 
     def notify(self, notification):
+        """Display an important message to the user. Write a message to stdout,
+        wait MESSAGE_TIMEOUT seconds, then resume normal display mode."""
         sys.stdout.write(notification)
         sys.stdout.flush()
         sleep(MESSAGE_TIMEOUT)
         self.display_song()
 
     def search_library(self, action="play", stay=False):
+        """Search the library for a song, then execute 'action'."""
         self.stay_in_search_mode = stay
         try:
-            os.system('setterm -cursor on')
-            search_text = raw_input("\nSearch: ")
-            os.system('setterm -cursor off')
+            get_search_text()
         except (EOFError, KeyboardInterrupt):
             return
         matching_songs = self.get_search_results(search_text)
@@ -380,13 +359,16 @@ class Player(object):
         return self.matches[self.match_pos]
 
     def api_login(self):
-        return self.api.login(self.username, self.password)
+        status = self.api.login(self.username, self.password, self.device_id)
+        print("Status: ", status)
+        return status
 
     def play_url(self, stream_url):
         self.stream_player.change_song(stream_url)
         self.stream_player.play()
 
-    def get_random_song(self):
+    def add_random_song(self):
+        """Adds a random song-choice to the library."""
         all_songs = self.api.get_all_songs()
         self.song = random.choice(all_songs)
         self.playlist.append(self.song)
@@ -398,8 +380,20 @@ class Player(object):
 
 
 def disable_warnings():
+    """Disable all warnings from urllib3 about an insecure connection."""
     import requests.packages.urllib3 as urllib3
     urllib3.disable_warnings()
+
+def get_search_text():
+    """Let the user input some text to search with."""
+    os.system('setterm -cursor on')
+    try:
+        search_text = raw_input("\nSearch: ")
+    except (EOFError, KeyboardInterrupt):
+        search_text = ""
+    os.system('setterm -cursor off')
+    return search_text
+
 
 
 def main():
@@ -410,7 +404,7 @@ def main():
         try:
             player = Player(username, password)
             player.beginloop()
-        except gmusicapi.exceptions.NotLoggedIn:
+        except gmusicapi.exceptions.NotLoggedIn as e:
             print("Login details were incorrect or Google blocked a login " +
                   "attempt. Please check your email.")
         else:
