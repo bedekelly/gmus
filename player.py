@@ -362,7 +362,7 @@ class Player(object):
         song = self.current_match
         result_display = " - ".join([song['title'], song['artist'], song['album']])
         result_display = truncate_eighty(result_display)
-        player_display = self.song_display + "\n   ||   Search result: "
+        player_display = self.song_display + "\nSearch result: "
         result_no = str(self.match_pos + 1) + ". "
         s = player_display + result_no + result_display
         s += " " * (int(term_width()) - len(s) + 1)
@@ -425,7 +425,7 @@ def main():
 
 
 def truncate_eighty(text):
-    """Truncate 'text' to 80 characters and return.
+    """Truncate 'text' to 80 characters and return."""
     text = (text[:77] + "...") if len(text) > 79 else text
     return text
 
