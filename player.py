@@ -54,12 +54,13 @@ def getch_unix():
         # Get each character as it's typed, without needing a Return.
         tty.setraw(sys.stdin.fileno())
         ch = sys.stdin.read(1)
+
         if ch == chr(27):
             next_ch = sys.stdin.read(2)[1]
-            # Map WASD to the arrow-keys.
-            if next_ch in ["A", "W"]:
+            # Map arrow-keys to up and down commands.
+            if next_ch == ["A", "D"]:
                 ch = keys.UP_SONG
-            elif next_ch in ["S", "D"]:
+            elif next_ch in ["B", "C"]:
                 ch = keys.DOWN_SONG
         elif ord(ch) == 13:
             return keys.SELECT_SONG
