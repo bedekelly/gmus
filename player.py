@@ -58,7 +58,7 @@ def getch_unix():
         if ch == chr(27):
             next_ch = sys.stdin.read(2)[1]
             # Map arrow-keys to up and down commands.
-            if next_ch == ["A", "D"]:
+            if next_ch in ["A", "D"]:
                 ch = keys.UP_SONG
             elif next_ch in ["B", "C"]:
                 ch = keys.DOWN_SONG
@@ -283,7 +283,7 @@ class Player(object):
         """Search the library for a song, then execute 'action'."""
         self.stay_in_search_mode = stay
         try:
-            get_search_text()
+            search_text = get_search_text()
         except (EOFError, KeyboardInterrupt):
             return
         matching_songs = self.get_search_results(search_text)
