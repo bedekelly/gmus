@@ -296,29 +296,39 @@ class Player(object):
             self.enter_search_mode(matching_songs, action)
 
     def get_search_results(self, search_text):
+        """Return the list of matching songs for the given search text."""
         def nopunc(text):
+            """Strip all punctuation from the search text."""
             return ''.join(i for i in text if i.isalpha())
 
         matching_songs = []
         common_words = {"on", "the", "in", "of", "and", "or", "a"}
+
+        # Remove common words from the search text.
         words = [nopunc(word.lower()) for word in search_text.split()
                  if word.lower() not in common_words]
+
+        # For each song in the library, check if there's a match.
         for song in self.api.get_all_songs():
             attributes = (song['album'], song['title'], song['albumArtist'],
                           song['artist'])
             attributes = [nopunc(item).lower() for item in attributes]
 
+            # If every word in the search text is found somewhere in the song's
+            # attributes, add the song to our list of matching songs.
             if all(any([word in attr for attr in attributes])
                     for word in words):
                 matching_songs.append(song)
         return matching_songs
 
     def update_song_display(self):
+        """Assuming we're not in search mode, update the current song display
+        to reflect the currently-playing song."""
         if not self.paused:
             try:
                 self.song_display = unicode(
-                    "\r[Playing]{h} {s[title]} by {s[artist]} from {s[album]}".format(
-                        s=self.song, h="[S]" if self.shuffle else ""))
+                    "\r[Playing]{h} {s[title]} by {s[artist]} from {s[album]}"
+                    "".format(s=self.song, h="[S]" if self.shuffle else ""))
             except UnicodeEncodeError:
                 self.song_display = "\r[Playing]{h} {} by {}".format(
                     strip_accents(self.song['title']),
@@ -335,19 +345,24 @@ class Player(object):
                     strip_accents(self.song['title']),
                     strip_accents(self.song['artist']),
                     h="[S]" if self.shuffle else "")
+        
+        self.song_display = truncate_eighty(self.song_display)
         term_title(self.song_display)
 
 
     def display_song(self):
+        """Display a currently-playing song in the terminal."""
         num_spaces = (int(term_width()) - len(self.song_display) + 1)
         s = self.song_display + " " * num_spaces
         sys.stdout.write(s)
         sys.stdout.flush()
 
     def display_match(self):
+        """Display our current search result alongside the playing song."""
         song = self.current_match
         result_display = " - ".join([song['title'], song['artist'], song['album']])
-        player_display = self.song_display + "   ||   Search result: "
+        result_display = truncate_eighty(result_display)
+        player_display = self.song_display + "\n   ||   Search result: "
         result_no = str(self.match_pos + 1) + ". "
         s = player_display + result_no + result_display
         s += " " * (int(term_width()) - len(s) + 1)
@@ -356,14 +371,16 @@ class Player(object):
 
     @property
     def current_match(self):
+        """Return the search-match at our current position."""
         return self.matches[self.match_pos]
 
     def api_login(self):
+        """Login to the API with the username, password and device ID we have."""
         status = self.api.login(self.username, self.password, self.device_id)
-        print("Status: ", status)
         return status
 
     def play_url(self, stream_url):
+        """Change the player's current song to stream_url."""
         self.stream_player.change_song(stream_url)
         self.stream_player.play()
 
@@ -374,15 +391,10 @@ class Player(object):
         self.playlist.append(self.song)
 
     def play_song(self):
+        """Grab a song's URL and pass it along to our player."""
         song_url = self.api.get_stream_url(self.song['id'], self.device_id)
         self.play_url(song_url)
         self.paused = False
-
-
-def disable_warnings():
-    """Disable all warnings from urllib3 about an insecure connection."""
-    import requests.packages.urllib3 as urllib3
-    urllib3.disable_warnings()
 
 
 def get_search_text():
@@ -396,9 +408,7 @@ def get_search_text():
     return search_text
 
 
-
 def main():
-    # disable_warnings()
     while True:
         username = raw_input("Username: ")
         password = getpass()
@@ -412,6 +422,13 @@ def main():
             break
     os.system('setterm -cursor on')
     print()
+
+
+def truncate_eighty(text):
+    """Truncate 'text' to 80 characters and return.
+    text = (text[:77] + "...") if len(text) > 79 else text
+    return text
+
 
 
 if __name__ == "__main__":
