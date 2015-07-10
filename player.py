@@ -282,9 +282,8 @@ class Player(object):
     def search_library(self, action="play", stay=False):
         """Search the library for a song, then execute 'action'."""
         self.stay_in_search_mode = stay
-        try:
-            search_text = get_search_text()
-        except (EOFError, KeyboardInterrupt):
+        search_text = get_search_text()
+        if search_text is None:
             return
         matching_songs = self.get_search_results(search_text)
         if not matching_songs:
@@ -385,13 +384,14 @@ def disable_warnings():
     import requests.packages.urllib3 as urllib3
     urllib3.disable_warnings()
 
+
 def get_search_text():
     """Let the user input some text to search with."""
     os.system('setterm -cursor on')
     try:
         search_text = raw_input("\nSearch: ")
     except (EOFError, KeyboardInterrupt):
-        search_text = ""
+        search_text = None
     os.system('setterm -cursor off')
     return search_text
 
