@@ -360,9 +360,11 @@ class Player(object):
     def display_match(self):
         """Display our current search result alongside the playing song."""
         song = self.current_match
-        result_display = " - ".join([song['title'], song['artist'], song['album']])
-        result_display = truncate_eighty(result_display)
-        player_display = self.song_display + "\nSearch result: "
+        song_info = (song['title'], song['artist'], song['album'])
+        result_display = " - ".join(song_info)
+        result_display = truncate_eighty("\nSearch result: " + result_display)
+        player_display = self.song_display
+        
         result_no = str(self.match_pos + 1) + ". "
         s = player_display + result_no + result_display
         s += " " * (int(term_width()) - len(s) + 1)
