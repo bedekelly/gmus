@@ -362,11 +362,12 @@ class Player(object):
         song = self.current_match
         song_info = (song['title'], song['artist'], song['album'])
         result_display = " - ".join(song_info)
-        result_display = truncate_eighty("\nSearch result: " + result_display)
+        num = self.match_pos
+        result_display = "\nSearch result: {}. {}".format(num, result_display)
+        result_display = truncate_eighty(result_display)
         player_display = self.song_display
         
-        result_no = str(self.match_pos + 1) + ". "
-        s = player_display + result_no + result_display
+        s = player_display + result_display
         s += " " * (int(term_width()) - len(s) + 1)
         sys.stdout.write(s)
         sys.stdout.flush()
