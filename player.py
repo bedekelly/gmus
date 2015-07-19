@@ -31,8 +31,24 @@ class keys(object):
     UP_SONG = "up"
     DOWN_SONG = "down"
     SELECT_SONG = "enter"
+    ADD_SONG = "a"
+    ADD_MANY_SONGS = "A"
+    ADD_PLAYLIST = "p"
+    ADD_MANY_PLAYLISTS = "P"
+    ADD_PLAY_SONG = "f"
+    ADD_PLAY_ALL_MATCHING = "F"
+    PLAY_PAUSE = " "
+    PLAY_RANDOM_SONG = "z"
+    TOGGLE_SHUFFLE = "s"
+    SKIP_FORWARD = ">"
+    SKIP_BACKWARD = "<"
+    QUIT = "Q"
+    CLEAR_PLAYLIST = "c"
 
+    CHANGES_STATE = [ADD_SONG, ADD_MANY_SONGS, ADD_PLAYLIST, ADD_MANY_PLAYLISTS,
+                     ADD_PLAY_SONG, ADD_PLAY_ALL_MATCHING]
 
+    
 def strip_accents(s):
     """Normalise unicode text, for compatibility with Google's search."""
     nrm = ''.join(c for c in unicodedata.normalize('NFD', s)
@@ -147,6 +163,7 @@ class Player(object):
         GLib.MainLoop().run()
 
     def beginloop(self):
+        os.system("clear")
         self.play_song()
         thread.start_new_thread(self.player_thread, ())
         self.update_song_display()
@@ -162,39 +179,47 @@ class Player(object):
             self.update_song_display()
 
     def handle_input(self, user_key):
-        if user_key == " ":
+        if self.search_mode_handle_input(user_key):
+            return
+        if user_key == keys.PLAY_PAUSE:
             self.paused = not self.paused
             self.stream_player.toggle()
-        elif user_key == "z":
+        elif user_key == keys.PLAY_RANDOM_SONG:
             self.get_random_song()
             self.pl_pos += 1
             self.play_song()
-        elif user_key == ">":
+        elif user_key == keys.SKIP_FORWARD:
             self.next_song()
-        elif user_key == "<":
+        elif user_key == keys.SKIP_BACKWARD:
             self.previous_song()
-        elif user_key == "Q":
+        elif user_key == keys.QUIT:
             os.system("setterm -cursor on")
             print
             quit()
-        elif user_key == "a":
+        elif user_key == keys.ADD_SONG:
             self.search_library("add")
-        elif user_key == "A":
+        elif user_key == keys.ADD_MANY_SONGS:
             self.search_library("add", stay=True)
-        elif user_key == "f":
+        elif user_key == keys.ADD_PLAY_SONG:
             self.search_library("play")
-        elif user_key == "F":
+        elif user_key == keys.ADD_PLAY_ALL_MATCHING:
             self.search_library("add_all")
-        elif user_key == "c":
+        elif user_key == keys.CLEAR_PLAYLIST:
             self.clear_playlist()
-        elif user_key == "p":
+        elif user_key == keys.ADD_PLAYLIST:
             self.add_playlist()
-        elif user_key == "s":
+        elif user_key == keys.TOGGLE_SHUFFLE:
             self.toggle_shuffle()
-        elif self.search_mode:
-            self.search_mode_handle_input(user_key)
 
     def search_mode_handle_input(self, user_key):
+        if not self.search_mode:
+            # Don't handle the key if we're not in search mode.
+            return False
+
+        elif user_key in keys.CHANGES_STATE:
+            # Don't allow adding songs while adding songs, etc.
+            return True
+
         if user_key == keys.UP_SONG:
             self.select_previous_song()
         elif user_key == keys.DOWN_SONG:
@@ -203,6 +228,9 @@ class Player(object):
             self.search_mode_handle_select()
         elif user_key in ["q", "c"]:
             self.search_mode = False
+        else:
+            return False
+        return True
 
     def toggle_shuffle(self):
         self.shuffle = not self.shuffle
