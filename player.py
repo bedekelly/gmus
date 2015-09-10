@@ -145,6 +145,7 @@ class Player(object):
         self.logged_in = self.api_login()
         self.stream_player = StreamPlayer()
         self.display_match = self.display_song_match
+        self.search_mode_type = "song"
         self.stream_player.play()
         self.paused = False
         self.playlist = []
