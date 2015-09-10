@@ -404,14 +404,14 @@ class Player(object):
         """Display our current search result alongside the playing song."""
         song = self.current_match
         song_info = (song['title'], song['artist'], song['album'])
-        result_display = " - ".join(song_info)
+        result_display = u" - ".join(song_info)
         num = self.match_pos
-        result_display = "\nSearch result: {}. {}".format(num, result_display)
+        result_display = u"\nSearch result: {}. {}".format(num, result_display)
         result_display = truncate_eighty(result_display)
         player_display = self.song_display
         
         s = player_display + result_display
-        s += " " * (int(term_width()) - len(s) + 1)
+        s += u" " * (int(term_width()) - len(s) + 1)
         sys.stdout.write(s)
         sys.stdout.flush()
 
