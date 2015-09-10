@@ -247,8 +247,16 @@ class Player(object):
             self.match_pos += 1
             self.display_match()
 
+    def get_playlist_songs(match_title):
+        pass
+
     def search_mode_handle_select(self):
-        """The user just selected a song, while in search mode."""
+        """The user just selected a song/pl, while in search mode."""
+        if self.search_mode_type == "playlist":
+            pl_songs = self.get_playlist_songs(self.current_match)
+            self.playlist.extend(pl_songs)
+            return
+        # Here, we're adding a single track.
         self.playlist.append(self.current_match)
         if self.search_mode_action == "play":
             self.pl_pos = len(self.playlist) - 1
@@ -276,6 +284,11 @@ class Player(object):
                 self.display_song()
             else:
                 self.display_match()
+
+    def add_playlist(self):
+        """Search for and add a single playlist to the main list."""
+        
+
 
     def next_song(self):
         """Move to the next song in the playlist."""
@@ -385,7 +398,7 @@ class Player(object):
         sys.stdout.write(s)
         sys.stdout.flush()
 
-    def display_match(self):
+    def display_song_match(self):
         """Display our current search result alongside the playing song."""
         song = self.current_match
         song_info = (song['title'], song['artist'], song['album'])
@@ -423,7 +436,7 @@ class Player(object):
 
     def play_song(self):
         """Grab a song's URL and pass it along to our player."""
-        song_url = self.api.get_stream_url(self.song['id'], self.device_id)
+        song_url = self.api.get_stream_url(self.song['id'])
         self.play_url(song_url)
         self.paused = False
 
